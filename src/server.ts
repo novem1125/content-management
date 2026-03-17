@@ -1,11 +1,10 @@
 import { Hono } from 'hono'
 import http from 'http'
-
+import authRouter from "../src/Features/modules/auth/auth.router"
 const app = new Hono()
 const PORT = Number(process.env.PORT) || 3000
 
-app.get('/', (c) => c.text('Hello Hono!'))
-
+app.route('api/auth', authRouter)
 const server = http.createServer(async (req, res) => {
     try {
         const url = `http://${req.headers.host}${req.url}`

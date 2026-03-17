@@ -1,32 +1,37 @@
 import { pgTable, serial, varchar, timestamp, integer, text, uuid } from 'drizzle-orm/pg-core'
 import { InferSelectModel, InferInsertModel } from 'drizzle-orm'
+import { boolean } from 'drizzle-orm/pg-core'
 
 // ------------------
 // Role table
 // ------------------
 export const roles = pgTable('roles', {
-  id: serial('id').primaryKey(),
+  id: uuid('id').primaryKey(),
   name: varchar('name').notNull().unique(),
 })
 
 // ------------------
 // User table (UUID)
 // ------------------
+
 export const users = pgTable('users', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  username: varchar('username').notNull().unique(),
-  email: varchar('email').notNull().unique(),
+  id: uuid('id').primaryKey().defaultRandom(),
+  username: text('username').notNull(),
+  email: text('email'),
+  phone_no: text('phone_no'), // ✅ nullable
   password: text('password').notNull(),
-  roleId: integer('role_id').references(() => roles.id),
+  role_id: uuid('role_id').references(() => roles.id),
+  is_active: boolean('is_active').default(false),
+  firebase_key: text('firebase_key'), // optional too
   createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
+
 })
 
 // ------------------
 // UserSession table
 // ------------------
 export const userSessions = pgTable('user_sessions', {
-  id: serial('id').primaryKey(),
+  id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').references(() => users.id),
   refreshToken: text('refresh_token').notNull(),
   userAgent: text('user_agent').notNull(),
