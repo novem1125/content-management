@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1773649856686,
+      "tag": "0000_strange_the_call",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1773650127383,
+      "tag": "0001_lush_firebrand",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773650358436,
+      "tag": "0002_sturdy_sentry",
+      "breakpoints": true
+    }
+  ]
+}
