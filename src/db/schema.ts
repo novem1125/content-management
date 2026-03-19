@@ -6,7 +6,7 @@ import { boolean } from 'drizzle-orm/pg-core'
 // Role table
 // ------------------
 export const roles = pgTable('roles', {
-  id: uuid('id').primaryKey(),
+  id: serial('id').primaryKey(),
   name: varchar('name').notNull().unique(),
 })
 
@@ -20,7 +20,7 @@ export const users = pgTable('users', {
   email: text('email'),
   phone_no: text('phone_no'), // ✅ nullable
   password: text('password').notNull(),
-  role_id: uuid('role_id').references(() => roles.id),
+   role_id: integer('role_id').references(() => roles.id), 
   is_active: boolean('is_active').default(false),
   firebase_key: text('firebase_key'), // optional too
   createdAt: timestamp('created_at').defaultNow(),

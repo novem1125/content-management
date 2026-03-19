@@ -1,5 +1,5 @@
-import '.env/config';
-import { Hono } from "hono";
+import dotenv from "dotenv";
+dotenv.config({ path: ".env" }); // optional path if .env is in root
 import { HttpError } from "../../../shared/constants/http";
 import { generateJWT, JwtPayload } from "../../../utils/jwt";
 import { AuthRepository, SessionType } from "./auth.repository";
@@ -50,7 +50,6 @@ export class AuthService {
     }
 
     async login(
-        c: Context,  // Hono context
         emailOrPhone: string,
         password: string,
         firebaseKey?: string,
@@ -59,12 +58,14 @@ export class AuthService {
     ) {
         // 1️⃣ Find user
         const user = await this.authRepository.findByEmailOrPhone(emailOrPhone)
+
         if (!user) {
-            return c.json({ statusCode: 401, success: false, message: 'Invalid email or phone number' }, 401)
+            throw new HttpError(401, 'INVALID_USER', 'Invalid email or phone number')
         }
 
         if (!user.is_active) {
-            return c.json({ statusCode: 403, success: false, message: 'Your account has been deactivated' }, 403)
+            throw new HttpError(401, 'INVALID_USER', 'This User Not Active')
+
         }
 
         // 2️⃣ Update Firebase key if provided
@@ -75,7 +76,8 @@ export class AuthService {
         // 3️⃣ Verify password
         const isPasswordMatch = await bcrypt.compare(password, user.password)
         if (!isPasswordMatch) {
-            return c.json({ statusCode: 401, success: false, message: 'Invalid password' }, 401)
+            throw new HttpError(401, 'INVALID_PASSWORD', 'Invalid Password')
+
         }
 
         // 4️⃣ Handle session
@@ -105,7 +107,7 @@ export class AuthService {
 
 
         // 6️⃣ Return structured JSON
-        return c.json({
+        return ({
             statusCode: 200,
             success: true,
             message: 'Login successful',

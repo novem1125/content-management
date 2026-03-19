@@ -3,7 +3,7 @@ export type userRegister = {
     emailOrPhone?: string;
     // phone_no?: string;
     password: string;
-    role_id?: string | null;
+    role_id?: number | null;
 }
 
 export interface userResponse {

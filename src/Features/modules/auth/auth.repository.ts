@@ -18,17 +18,23 @@ export class AuthRepository implements IAuthRepository {
     async userRegister(userData: userRegister): Promise<userResponse> {
         const result = await db
             .insert(users)
-            .values(userData)
+            .values({
+                username: userData.username,
+                password: userData.password, // hashed
+                email: userData.emailOrPhone?.includes("@") ? userData.emailOrPhone : undefined,
+                phone_no: userData.emailOrPhone?.includes("@") ? undefined : userData.emailOrPhone,
+                role_id: userData.role_id,
+            })
             .returning({
                 id: users.id,
                 username: users.username,
-                email: userData.emailOrPhone ?? (null as any),
-                phone_no: userData.emailOrPhone ?? (null as any),
+                email: users.email,
+                phone_no: users.phone_no,
                 role_id: users.role_id,
                 createdAt: users.createdAt,
             });
 
-        return result[0];
+        return result[0] as userResponse;
     }
     async findByEmailOrPhone(value: string): Promise<any> {
         const result = await db
