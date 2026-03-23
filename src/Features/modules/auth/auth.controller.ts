@@ -62,4 +62,29 @@ export class AuthController {
             };
         }
     }
+    async googleLogin(c: Context<any, any, {}>, body: { idToken: string }): Promise<any> {
+        try {
+            const idToken = body.idToken;
+            if (!idToken) {
+                return c.json({
+                    statusCode: 400,
+                    success: false,
+                    message: "idToken is required",
+                }, 400);
+            }
+
+            const result = await this.authService.googleLogin(idToken);
+            // console.log(result);
+            return result;
+
+        } catch (error: any) {
+            console.error(error);
+
+            return c.json({
+                statusCode: 500,
+                success: false,
+                message: error.message || "Internal Server Error",
+            }, 500);
+        }
+    }
 }

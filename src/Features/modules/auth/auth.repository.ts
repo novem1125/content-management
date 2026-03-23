@@ -24,6 +24,8 @@ export class AuthRepository implements IAuthRepository {
                 email: userData.emailOrPhone?.includes("@") ? userData.emailOrPhone : undefined,
                 phone_no: userData.emailOrPhone?.includes("@") ? undefined : userData.emailOrPhone,
                 role_id: userData.role_id,
+                avatar:userData.avatar,
+                googleId:userData.google_id
             })
             .returning({
                 id: users.id,

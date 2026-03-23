@@ -15,6 +15,13 @@
       "when": 1773905640947,
       "tag": "0001_mixed_psylocke",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774234480938,
+      "tag": "0002_normal_sasquatch",
+      "breakpoints": true
     }
   ]
 }

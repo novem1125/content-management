@@ -4,6 +4,10 @@ export type userRegister = {
     // phone_no?: string;
     password: string;
     role_id?: number | null;
+    is_active?:boolean;
+    firebase_key?:string | null;
+    avatar?:string | null;
+    google_id?:string | null;
 }
 
 export interface userResponse {

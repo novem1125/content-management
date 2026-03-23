@@ -20,7 +20,12 @@ router.post("/register", async (c) => {
 
 router.post("/login", async (c) => {
     const body = await c.req.json();
-    const user = await authController.userLogin(c,body);
+    const user = await authController.userLogin(c, body);
+    return c.json(user, 200);
+});
+router.post("/google", async (c) => {
+    const body = await c.req.json(); // get request body
+    const user = await authController.googleLogin(c, body);
     return c.json(user, 200);
 });
 

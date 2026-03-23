@@ -5,9 +5,14 @@ import { generateJWT, JwtPayload } from "../../../utils/jwt";
 import { AuthRepository, SessionType } from "./auth.repository";
 import { userRegister, userResponse } from "./types/user.type";
 import bcrypt from "bcrypt";
+import https from 'https';
+import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid'
 import type { Context } from 'hono'
+import { verifyGoogleToken } from "../../../utils/google";
+import { MediaService } from "../../../media/MediaService";
 
+const mediaService = new MediaService();
 export class AuthService {
     constructor(private authRepository: AuthRepository) { }
 
@@ -124,5 +129,125 @@ export class AuthService {
             },
             token: token
         })
+    }
+
+    async googleLogin(idToken: string): Promise<any> {
+        try {
+            // 1️⃣ Verify Google token
+            const payload = await verifyGoogleToken(idToken);
+            const email = payload.email;
+            const name = payload.name;
+            let presignedUrl;
+
+            if (!email) {
+                return {
+                    statusCode: 400,
+                    success: false,
+                    message: "Google account has no email",
+                };
+            }
+
+            // 2️⃣ Check if user exists
+            let user = await this.authRepository.findByEmailOrPhone(email);
+            // 3️⃣ If user does not exist, create one
+            if (!user) {
+                const username = name || email.split("@")[0];
+                const fileName = `${payload.sub}.png`;
+                const folder = "Profile";
+
+                // 🔹 Download Google profile image
+                const originalBuffer: Buffer = await new Promise((resolve, reject) => {
+                    https.get(payload.picture!, (res: any) => {
+                        const chunks: Uint8Array[] = [];
+                        res.on("data", (chunk: any) => chunks.push(chunk));
+                        res.on("end", () => resolve(Buffer.concat(chunks)));
+                        res.on("error", reject);
+                    });
+                });
+
+                // 🔹 Process image (optional: resize, convert to PNG)
+                const outputBuffer = await sharp(originalBuffer)
+                    .resize({ width: 256, height: 256 })
+                    .png({ compressionLevel: 9, adaptiveFiltering: true, palette: true })
+                    .toBuffer();
+
+                // 🔹 Upload to MinIO
+                const minioPath = await mediaService.uploadToMinio(
+                    "content-management",
+                    folder,
+                    fileName,
+                    outputBuffer,
+                    "image/png"
+                );
+                presignedUrl = await mediaService.generatePresignedUrl(
+                    "content-management",
+                    minioPath
+                );
+                // 🔹 Create user in DB
+                user = await this.authRepository.userRegister({
+                    username,
+                    password: "", // no password for Google users
+                    emailOrPhone: email,
+                    role_id: 2, // default role
+                    is_active: true,
+                    firebase_key: null,
+                    avatar: minioPath, // store MinIO path
+                    google_id: payload.sub
+                });
+            }
+
+            // 4️⃣ Create or update session
+            const sessionToken = uuidv4();
+            let session = await this.authRepository.getSession(user.id);
+
+            if (!session) {
+                session = await this.authRepository.createSession(sessionToken, user.id);
+            } else {
+                session = await this.authRepository.updateSession(sessionToken, user.id);
+            }
+
+            // 5️⃣ Generate JWT safely
+            const jwtPayload = {
+                uuid: user.id,
+                username: user.username,
+                email: user.email ?? null,
+                phone_no: user.phone_no ?? null,
+                role_id: user.role_id ?? null,
+                session: session?.refreshToken!,
+            };
+
+            const secret = process.env.SECRET_KEY;
+            if (!secret) throw new Error("SECRET_KEY missing");
+
+            const token = generateJWT(jwtPayload, secret);
+
+            // 6️⃣ Return structured response
+            return {
+                statusCode: 200,
+                success: true,
+                message: "Google login successful",
+                data: {
+                    id: user.id,
+                    name: user.username,
+                    email: user.email ?? null,
+                    phone_no: user.phone_no ?? null,
+                    session: session?.refreshToken,
+                    role_id: user.role_id,
+                    imageUrl: presignedUrl
+                },
+                token,
+            };
+        } catch (error: any) {
+            console.error("Google login error:", error);
+
+            // 7️⃣ Properly catch invalid token errors
+            const status = error.message.includes("Invalid Google token") ? 401 : 500;
+
+            return {
+                statusCode: status,
+                success: false,
+                message: error.message || "Internal Server Error",
+            };
+        }
     }
 }
