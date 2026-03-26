@@ -90,8 +90,8 @@ export class AuthController {
     }
     async updateUser2FactorVerified(c: Context<any, any, {}>, body: { is_verified: boolean }): Promise<any> {
         const user = c.get("user"); // 👈 get from middleware
-
-        const userId = user.id;
+        const userId = user.uuid;
+        console.log(userId,body.is_verified);
         const response = await this.authService.updateVerified(userId, body.is_verified)
         return c.json({
             status: true,
