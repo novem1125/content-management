@@ -16,10 +16,11 @@ export interface userResponse {
     email?: string | null;
     phone_no?: string | null;
     password?: string;
-    role_id?: string | null;
+    role_id?: number | null;
     createdAt: Date | null;
     updatedAt?: Date | null;
     otp?: string | null;
     otp_expiry?: string | null;
-    is_verified?: boolean;
+    is_verified?: boolean | null;
+    is_active?:boolean | null;
 }

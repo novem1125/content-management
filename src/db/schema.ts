@@ -22,11 +22,12 @@ export const users = pgTable('users', {
   password: text('password').notNull(),
   role_id: integer('role_id').references(() => roles.id),
   is_active: boolean('is_active').default(false),
+  is_verified: boolean('is_verified').default(false),
   firebase_key: text('firebase_key'), // optional too
   googleId: text("google_id"),
   avatar: text("avatar"),
   createdAt: timestamp('created_at').defaultNow(),
-
+  updatedAt: timestamp('updated_at').defaultNow()
 })
 
 // ------------------

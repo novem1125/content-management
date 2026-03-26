@@ -18,4 +18,5 @@ export interface IAuthRepository {
         userIp?: string
     ): Promise<SessionType | null>
     updateFirebaseKey(userId: string, firebaseKey: string): Promise<any>
+    updateVerified(userId: string, isVerified: boolean): Promise<userResponse | null>
 }

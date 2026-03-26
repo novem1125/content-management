@@ -24,8 +24,8 @@ export class AuthRepository implements IAuthRepository {
                 email: userData.emailOrPhone?.includes("@") ? userData.emailOrPhone : undefined,
                 phone_no: userData.emailOrPhone?.includes("@") ? undefined : userData.emailOrPhone,
                 role_id: userData.role_id,
-                avatar:userData.avatar,
-                googleId:userData.google_id
+                avatar: userData.avatar,
+                googleId: userData.google_id
             })
             .returning({
                 id: users.id,
@@ -59,6 +59,19 @@ export class AuthRepository implements IAuthRepository {
             .limit(1);
 
         return result[0] || null;
+    }
+    async updateVerified(userId: string, isVerified: boolean): Promise<userResponse | null> {
+        const [updatedUser] = await db
+            .update(users)
+            .set({ is_verified: isVerified })
+            .where(eq(users.id, userId)) // ✅ clean
+            .returning();
+
+        if (!updatedUser) {
+            return null;
+        }
+
+        return updatedUser
     }
     async createSession(
         sessionToken: string,

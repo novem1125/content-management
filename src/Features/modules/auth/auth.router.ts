@@ -21,12 +21,16 @@ router.post("/register", async (c) => {
 router.post("/login", async (c) => {
     const body = await c.req.json();
     const user = await authController.userLogin(c, body);
-    return c.json(user, 200);
+    return c.json(user);
 });
-router.post("/google", async (c) => {
+router.post("/google/login", async (c) => {
     const body = await c.req.json(); // get request body
     const user = await authController.googleLogin(c, body);
-    return c.json(user, 200);
+    return c.json(user);
 });
-
+router.put("/two-factor",async (c) => {
+    const body = await c.req.json(); // get request body
+    const user = await authController.updateUser2FactorVerified(c,body);
+    return c.json(user)
+})
 export default router;

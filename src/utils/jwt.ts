@@ -20,7 +20,7 @@ export interface JwtToken {
  */
 export const generateJWT = (payload: JwtPayload, secretKey: string): JwtToken => {
   // 1️⃣ Generate access token (7 days)
-  const accessToken = jwt.sign({ ...payload, type: 'access' }, secretKey, { expiresIn: '7d' })
+  const accessToken = jwt.sign(payload, process.env.JWT_SECRET!, { algorithm: 'HS256', expiresIn: '1d' });
 
   // 2️⃣ Generate refresh token (14 days)
   const refreshToken = jwt.sign({ ...payload, type: 'refresh' }, secretKey, { expiresIn: '14d' })

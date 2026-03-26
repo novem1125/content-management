@@ -87,7 +87,7 @@ export class AuthService {
 
         // 4️⃣ Handle session
         const sessionToken = uuidv4();
-        const existingSession: SessionType | null = await this.authRepository.getSession(user.id)
+        const existingSession = await this.authRepository.getSession(user.id)
         let newSession: any
 
         if (!existingSession) {
@@ -95,7 +95,6 @@ export class AuthService {
         } else {
             newSession = await this.authRepository.updateSession(sessionToken, user.id, userAgent, userIp)
         }
-
         // 5️⃣ Generate JWT
         const payload: JwtPayload = {
             uuid: user.id,                     // you can also use user.uuid if available
@@ -249,5 +248,8 @@ export class AuthService {
                 message: error.message || "Internal Server Error",
             };
         }
+    }
+    async updateVerified(userId: string, isVerified: boolean): Promise<userResponse | any> {
+        return await this.authRepository.updateVerified(userId, isVerified)
     }
 }
