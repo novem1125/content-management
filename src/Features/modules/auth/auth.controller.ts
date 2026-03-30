@@ -91,12 +91,55 @@ export class AuthController {
     async updateUser2FactorVerified(c: Context<any, any, {}>, body: { is_verified: boolean }): Promise<any> {
         const user = c.get("user"); // 👈 get from middleware
         const userId = user.uuid;
-        console.log(userId,body.is_verified);
-        const response = await this.authService.updateVerified(userId, body.is_verified)
-        return c.json({
-            status: true,
-            message:"User Verified",
-            response,
-        });
+        try {
+            const response = await this.authService.updateVerified(userId, body.is_verified);
+
+            return c.json({
+                success: true,
+                message: "User Verified",
+                data: response,
+            });
+        } catch (error) {
+            console.error(error);
+            return c.json({
+                success: false,
+                message: "Something went wrong",
+            }, 500);
+        }
+    }
+    async sendOtp(c: Context) {
+        try {
+            const user = c.get("user");
+            const sessionId = c.get("session_id"); // from middleware
+            await this.authService.sendOtp(sessionId, user.email);
+
+            return c.json({
+                success: true,
+                message: "OTP sent to email",
+            });
+
+        } catch (error) {
+            console.error(error);
+            return c.json({ success: false, message: "Failed to send OTP" }, 500);
+        }
+    }
+    async verifyOtp(c: Context, body: { otp: string }): Promise<any> {
+        try {
+            const { otp } = body;
+            const sessionId = c.get("session_id");
+
+            await this.authService.verifyOtp(sessionId, otp);
+
+            return c.json({
+                success: true,
+                message: "OTP verified successfully",
+            });
+
+        } catch (error: any) {
+            return c.json({
+                success: false,
+                message: error.message,
+            }, 400);
+        }
     }
 }

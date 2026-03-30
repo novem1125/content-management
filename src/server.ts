@@ -1,3 +1,5 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import { Hono } from 'hono'
 import http from 'http'
 import authRouter from "../src/Features/modules/auth/auth.router"

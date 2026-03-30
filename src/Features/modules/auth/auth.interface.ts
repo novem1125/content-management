@@ -4,6 +4,12 @@ import { userRegister, userResponse } from "./types/user.type";
 export interface IAuthRepository {
     userRegister(userData: userRegister): Promise<userResponse>
     findByEmailOrPhone(value: string) : Promise<any>
+    updateVerified(userId: string, isVerified: boolean): Promise<userResponse | any> 
+    updateOtp(sessionId: string, otp: string, expiry: Date):Promise<any> 
+    sendOtpEmail(to: string, otp: string):Promise<any>
+    markOtpVerified(sessionId: string):Promise<any>
+    getSessionById(sessionId: string):Promise<any>
+
     createSession(
         sessionToken: string,
         userId: string, // UUID

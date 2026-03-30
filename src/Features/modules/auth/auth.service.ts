@@ -14,7 +14,7 @@ import { MediaService } from "../../../media/MediaService";
 
 const mediaService = new MediaService();
 export class AuthService {
-    constructor(private authRepository: AuthRepository) { }
+    constructor(private authRepository: AuthRepository,) { }
 
 
     async userRegister(body: userRegister): Promise<userResponse> {
@@ -70,7 +70,6 @@ export class AuthService {
 
         if (!user.is_active) {
             throw new HttpError(401, 'INVALID_USER', 'This User Not Active')
-
         }
 
         // 2️⃣ Update Firebase key if provided
@@ -102,7 +101,8 @@ export class AuthService {
             email: user.email ?? null,
             phone_no: user.phone_no ?? null,
             role_id: user.role_id ?? null,
-            session: newSession.refreshToken,  // session token from DB
+            session_token: newSession.refreshToken,  // session token from DB
+            session_id: newSession.id
         };
 
         // Secret key from env
@@ -123,12 +123,51 @@ export class AuthService {
                 // phone_no: user.phone_no,
                 session: newSession.refreshToken,
                 role_id: user.role_id,
+                is_active: user.is_active,
+
                 // role: user.roleId,
                 // permissions: user.role?.permissions.map((p: { name: string }) => p.name)
             },
             token: token
         })
     }
+
+
+  generateOTP(): string {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  async sendOtp(sessionId: string, email: string) {
+    const otp = this.generateOTP();
+
+    const expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 min
+
+    await this.authRepository.updateOtp(sessionId, otp, expiry);
+
+    await this.authRepository.sendOtpEmail(email, otp);
+
+    return true;
+  }
+
+  async verifyOtp(sessionId: string, inputOtp: string) {
+    const session = await this.authRepository.getSessionById(sessionId);
+
+    if (!session || !session.otpCode || !session.otpExpiry) {
+      throw new Error("OTP not found");
+    }
+
+    if (session.otpCode !== inputOtp) {
+      throw new Error("Invalid OTP");
+    }
+
+    if (new Date() > session.otpExpiry) {
+      throw new Error("OTP expired");
+    }
+
+    await this.authRepository.markOtpVerified(sessionId);
+
+    return true;
+  }
 
     async googleLogin(idToken: string): Promise<any> {
         try {
@@ -212,7 +251,8 @@ export class AuthService {
                 email: user.email ?? null,
                 phone_no: user.phone_no ?? null,
                 role_id: user.role_id ?? null,
-                session: session?.refreshToken!,
+                session_token: session?.refreshToken!,
+                session_id: session?.id!,
             };
 
             const secret = process.env.SECRET_KEY;

@@ -35,14 +35,23 @@ export const users = pgTable('users', {
 // ------------------
 export const userSessions = pgTable('user_sessions', {
   id: uuid('id').defaultRandom().primaryKey(),
+
   userId: uuid('user_id').references(() => users.id),
+
   refreshToken: text('refresh_token').notNull(),
+
   userAgent: text('user_agent').notNull(),
   ipAddress: varchar('ip_address', { length: 50 }),
+
+  // 🔐 OTP fields
+  otpCode: varchar('otp_code', { length: 10 }),       // store OTP (e.g. 6 digits)
+  otpExpiry: timestamp('otp_expiry'),                // expiration time
+  isOtpVerified: boolean('is_otp_verified').default(false),
+
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   expiresAt: timestamp('expires_at'),
-})
+});
 
 // ------------------
 // Content table

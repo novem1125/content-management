@@ -1,20 +1,14 @@
-// middleware/auth.ts
 import dotenv from "dotenv";
 dotenv.config();
 
 import { Context, Next } from "hono";
-import jwt, { JwtPayload } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import { db } from "../db/db.config";
 import { userSessions } from "../db/schema";
 import { and, eq, gt } from "drizzle-orm";
 
 const SECRET = process.env.JWT_SECRET!;
-interface MyJwtPayload {
-  id: string;      // user UUID
-  session: string; // refresh token
-  iat?: number;
-  exp?: number;
-}
+
 export const authMiddleware = async (c: Context, next: Next) => {
   const publicRoutes = [
     "/api/auth/login",
@@ -22,9 +16,7 @@ export const authMiddleware = async (c: Context, next: Next) => {
     "/api/auth/google/login",
   ];
 
-  const path = c.req.path;
-
-  if (publicRoutes.includes(path)) return next();
+  if (publicRoutes.includes(c.req.path)) return next();
 
   const authHeader = c.req.header("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
@@ -32,19 +24,18 @@ export const authMiddleware = async (c: Context, next: Next) => {
   }
 
   const token = authHeader.split(" ")[1];
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any; 
-    // const decoded = jwt.verify(token, process.env.JWT_SECRET!, { algorithms: ['HS256'] }) as MyJwtPayload;
-    // console.log("Decoded JWT:", decoded);
 
+  try {
+    // ✅ decode JWT
+    const decoded: any = jwt.verify(token, SECRET);
+    // ✅ find session in DB
     const session = await db.query.userSessions.findFirst({
       where: and(
-        eq(userSessions.userId, decoded.uuid),
-        eq(userSessions.refreshToken, decoded.session),
-        // gt(userSessions.expiresAt, new Date())
+        eq(userSessions.userId, decoded.uuid),           // decoded user UUID
+        eq(userSessions.refreshToken, decoded.session_token), // refresh token
+        // gt(userSessions.expiresAt, new Date())          // not expired
       ),
     });
-
     if (!session) {
       return c.json({
         status: false,
@@ -52,7 +43,10 @@ export const authMiddleware = async (c: Context, next: Next) => {
       }, 401);
     }
 
-    c.set("user", decoded);
+    // ✅ set both user info and session_id in context
+    c.set("user", decoded);                // e.g. { id: 'uuid', email: '...' }
+    c.set("session_id", session.id);       // ✅ this fixes your OTP issue
+
     await next();
   } catch (err) {
     console.log("JWT verification failed:", err);

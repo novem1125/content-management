@@ -28,9 +28,19 @@ router.post("/google/login", async (c) => {
     const user = await authController.googleLogin(c, body);
     return c.json(user);
 });
-router.put("/two-factor",async (c) => {
+router.put("/two-factor", async (c) => {
     const body = await c.req.json(); // get request body
-    const user = await authController.updateUser2FactorVerified(c,body);
-    return c.json(user)
+    return await authController.updateUser2FactorVerified(c, body);
 })
+
+router.post("/send-otp", async (c) => {
+    
+    return await authController.sendOtp(c);
+});
+router.post("/verify-otp", async (c) => {
+    const body = await c.req.json(); // get request body
+
+    return await authController.verifyOtp(c, body)
+});
+
 export default router;

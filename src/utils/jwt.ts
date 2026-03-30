@@ -7,7 +7,8 @@ export interface JwtPayload {
   email?: string | null;
   phone_no?: string | null;
   role_id?: string | null;
-  session: string;
+  session_token: string;
+  session_id: string;
 }
 
 export interface JwtToken {
@@ -20,6 +21,7 @@ export interface JwtToken {
  */
 export const generateJWT = (payload: JwtPayload, secretKey: string): JwtToken => {
   // 1️⃣ Generate access token (7 days)
+  
   const accessToken = jwt.sign(payload, process.env.JWT_SECRET!, { algorithm: 'HS256', expiresIn: '1d' });
 
   // 2️⃣ Generate refresh token (14 days)
