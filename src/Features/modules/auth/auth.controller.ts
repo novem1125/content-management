@@ -123,6 +123,18 @@ export class AuthController {
             return c.json({ success: false, message: "Failed to send OTP" }, 500);
         }
     }
+    async sendOtpForForgotPassword(c: Context, body: { email: string }) {
+        try {
+            await this.authService.fotgotPasswordOtp(body.email);
+              return c.json({
+                success: true,
+                message: "Forgot Password OTP sent to email",
+            });
+        } catch (error) {
+            console.error(error);
+            return c.json({ success: false, message: "Failed to send forgot password OTP" }, 500);
+        }
+    }
     async verifyOtp(c: Context, body: { otp: string }): Promise<any> {
         try {
             const { otp } = body;

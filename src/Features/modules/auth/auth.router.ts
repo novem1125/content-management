@@ -34,13 +34,22 @@ router.put("/two-factor", async (c) => {
 })
 
 router.post("/send-otp", async (c) => {
-    
+
     return await authController.sendOtp(c);
 });
 router.post("/verify-otp", async (c) => {
     const body = await c.req.json(); // get request body
 
     return await authController.verifyOtp(c, body)
+});
+router.post("/forgot-password/send-otp", async (c) => {
+    try {
+        const body = await c.req.json(); // get request body
+
+        return await authController.sendOtpForForgotPassword(c, body);
+    } catch (error) {
+        console.error(error);
+    }
 });
 
 export default router;

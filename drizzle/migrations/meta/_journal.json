@@ -36,6 +36,27 @@
       "when": 1774841062116,
       "tag": "0004_past_eddie_brock",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1785467082923,
+      "tag": "0005_quick_moon_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785467681776,
+      "tag": "0006_common_madelyne_pryor",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1785490134334,
+      "tag": "0007_thankful_dark_beast",
+      "breakpoints": true
     }
   ]
 }

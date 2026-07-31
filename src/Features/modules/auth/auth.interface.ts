@@ -25,4 +25,5 @@ export interface IAuthRepository {
     ): Promise<SessionType | null>
     updateFirebaseKey(userId: string, firebaseKey: string): Promise<any>
     updateVerified(userId: string, isVerified: boolean): Promise<userResponse | null>
+    forgotPasswordOtpEmail(to: string, otp: string): Promise<any>
 }
