@@ -1,18 +1,25 @@
 // utils/google.ts
 import dotenv from "dotenv";
-dotenv.config({ path: ".env" }); //
+dotenv.config({ path: ".env" });
 import { OAuth2Client, TokenPayload } from "google-auth-library";
 
-if (!process.env.GOOGLE_CLIENT_ID) {
-    throw new Error("GOOGLE_CLIENT_ID not set in environment variables");
-}
+let client: OAuth2Client | null = null;
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+function getGoogleClient(): OAuth2Client {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) {
+        throw new Error("GOOGLE_CLIENT_ID not set in environment variables");
+    }
+    if (!client) {
+        client = new OAuth2Client(clientId);
+    }
+    return client;
+}
 
 export async function verifyGoogleToken(idToken: string): Promise<TokenPayload> {
     try {
-
-        const ticket = await client.verifyIdToken({
+        const googleClient = getGoogleClient();
+        const ticket = await googleClient.verifyIdToken({
             idToken,
             audience: process.env.GOOGLE_CLIENT_ID, // must match token's aud
         });
@@ -25,4 +32,4 @@ export async function verifyGoogleToken(idToken: string): Promise<TokenPayload> 
         console.error("Google token verification failed:", err.message || err);
         throw new Error("Invalid Google token");
     }
-}
+}

@@ -8,6 +8,7 @@ export interface Content {
   title: string;
   photo: string[];
   owner_id: string;
+  status:string;
   created_at: Date;
   updated_at: Date;
 }

@@ -1,6 +1,7 @@
 import { CreateContentInput, UpdateContentInput } from "./content.schema";
 import { ContentRepository } from "./contents.repository";
 import { Content } from "./type/content";
+import { publishContentCreatedEvent } from "../../../core/kafka";
 
 export class ContentService {
   constructor(private contentRepo: ContentRepository) {}
@@ -20,8 +21,21 @@ export class ContentService {
   }
 
   // 3. Create content
-  async createContent(ownerId: string, input: CreateContentInput):Promise<Content> {
-    return await this.contentRepo.create(ownerId, input);
+  async createContent(ownerId: string, input: CreateContentInput): Promise<Content> {
+    const newContent = await this.contentRepo.create(ownerId, input);
+
+    // Publish event to Kafka
+    await publishContentCreatedEvent({
+      id: Number(newContent.id),
+      title: newContent.title,
+      photo: newContent.photo,
+      ownerId: newContent.owner_id,
+      status: newContent.status,
+      createdAt: newContent.created_at,
+      updatedAt: newContent.updated_at,
+    });
+
+    return newContent;
   }
 
   // 4. Update content (Checks ownership / role permissions)

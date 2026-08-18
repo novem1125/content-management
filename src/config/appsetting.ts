@@ -34,6 +34,11 @@ const config = {
     useSSL: process.env.MINIO_USE_SSL === "true",
     bucketName: process.env.MINIO_BUCKET_NAME,
   },
+  kafka: {
+    brokers: (process.env.KAFKA_BROKERS || "localhost:9092").split(","),
+    clientId: process.env.KAFKA_CLIENT_ID || "content-management-service",
+    topicContentCreated: process.env.KAFKA_TOPIC_CONTENT_CREATED || "content-created",
+  },
   // ...other configs
 };
 
