@@ -10,7 +10,7 @@ import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid'
 import type { Context } from 'hono'
 import { verifyGoogleToken } from "../../../utils/google";
-import { MediaService } from "../../../media/MediaService";
+import { MediaService } from "../../../config/media.config";
 
 const mediaService = new MediaService();
 export class AuthService {
@@ -106,7 +106,7 @@ export class AuthService {
         };
 
         // Secret key from env
-        const secretKey = process.env.SECRET_KEY!;
+        const secretKey = process.env.JWT_SECRET || process.env.SECRET_KEY || "contentusersecret";
         const token = generateJWT(payload, secretKey);
 
 
@@ -223,7 +223,6 @@ export class AuthService {
                     folder,
                     fileName,
                     outputBuffer,
-                    "image/png"
                 );
                 presignedUrl = await mediaService.generatePresignedUrl(
                     "content-management",
@@ -263,8 +262,7 @@ export class AuthService {
                 session_id: session?.id!,
             };
 
-            const secret = process.env.SECRET_KEY;
-            if (!secret) throw new Error("SECRET_KEY missing");
+            const secret = process.env.JWT_SECRET || process.env.SECRET_KEY || "contentusersecret";
 
             const token = generateJWT(jwtPayload, secret);
 

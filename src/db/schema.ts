@@ -72,6 +72,7 @@ export const contents = pgTable("contents", {
   title: varchar("title").notNull(),
   // description: varchar("description").notNull(),
   photo: text("photo").array(),
+  video: text("video").array(),
   ownerId: uuid("owner_id").references(() => users.id),
   status: contentStatusEnum("status").default("draft").notNull(),
   createdAt: timestamp("created_at").defaultNow(),

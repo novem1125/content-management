@@ -14,6 +14,7 @@ export class ContentRepository {
       updated_at: row.updatedAt ?? row.updated_at ?? null,
       title: row.title,
       photo: row.photo ?? null,
+      video: row.video ?? null,
       status: row.status,
     } as Content;
   }
@@ -41,6 +42,7 @@ export class ContentRepository {
       .values({
         title: data.title,
         photo: data.photo,
+        video: data.video,
         status: data.status,
         ownerId: ownerId,
       })

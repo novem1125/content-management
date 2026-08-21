@@ -7,7 +7,7 @@ import { db } from "../db/db.config";
 import { userSessions } from "../db/schema";
 import { and, eq, gt } from "drizzle-orm";
 
-const SECRET = process.env.JWT_SECRET!;
+const SECRET = process.env.JWT_SECRET || process.env.SECRET_KEY || "contentusersecret";
 
 export const authMiddleware = async (c: Context, next: Next) => {
   const publicRoutes = [
@@ -16,7 +16,7 @@ export const authMiddleware = async (c: Context, next: Next) => {
     "/api/auth/google/login",
   ];
 
-  if (publicRoutes.includes(c.req.path)) return next();
+  if (publicRoutes.includes(c.req.path) || c.req.path.startsWith("/api/contents/public")) return next();
 
   const authHeader = c.req.header("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
@@ -28,12 +28,13 @@ export const authMiddleware = async (c: Context, next: Next) => {
   try {
     // ✅ decode JWT
     const decoded: any = jwt.verify(token, SECRET);
+    const userId = decoded.uuid || decoded.sub || decoded.id;
+
     // ✅ find session in DB
     const session = await db.query.userSessions.findFirst({
       where: and(
-        eq(userSessions.userId, decoded.uuid),           // decoded user UUID
-        eq(userSessions.refreshToken, decoded.session_token), // refresh token
-        // gt(userSessions.expiresAt, new Date())          // not expired
+        eq(userSessions.userId, userId),
+        decoded.session_token ? eq(userSessions.refreshToken, decoded.session_token) : undefined
       ),
     });
     if (!session) {
@@ -44,8 +45,11 @@ export const authMiddleware = async (c: Context, next: Next) => {
     }
 
     // ✅ set both user info and session_id in context
-    c.set("user", decoded);                // e.g. { id: 'uuid', email: '...' }
-    c.set("session_id", session.id);       // ✅ this fixes your OTP issue
+    c.set("user", {
+      ...decoded,
+      id: userId,
+    });
+    c.set("session_id", session.id);
 
     await next();
   } catch (err) {

@@ -57,6 +57,7 @@ export interface ContentCreatedEventPayload {
   id: number;
   title: string;
   photo?: string[] | null;
+  video?: string[] | null;
   ownerId: string | null;
   status: string;
   createdAt: Date | null;

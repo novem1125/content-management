@@ -1,7 +1,7 @@
 import { Context, Next } from "hono";
-import { verify } from "hono/jwt"; // Built-in Hono JWT utility
+import jwt from "jsonwebtoken";
 import { userSessions, users, roles } from "../db/schema";
-import { eq, and, gte } from "drizzle-orm";
+import { eq, and, gte, isNull, or } from "drizzle-orm";
 import { db } from "../db/db.config";
 
 // Define typed variables for Hono context
@@ -18,7 +18,7 @@ type Env = {
   };
 };
 
-const JWT_SECRET = process.env.JWT_SECRET || "contentusersecret";
+const JWT_SECRET = process.env.JWT_SECRET || process.env.SECRET_KEY || "contentusersecret";
 
 export async function authMiddleware(c: Context<Env>, next: Next) {
   try {
@@ -33,9 +33,27 @@ export async function authMiddleware(c: Context<Env>, next: Next) {
     // 2. Verify JWT signature & expiration
     let payload: any;
     try {
-      payload = await verify(token, JWT_SECRET, ({ algorithms: ["HS256"] } as unknown) as any);
-    } catch (err) {
+      payload = jwt.verify(token, JWT_SECRET);
+    } catch (err: any) {
+      console.error("JWT Verification Error:", err.message);
       return c.json({ success: false, message: "Unauthorized: Invalid or expired token" }, 401);
+    }
+
+    const targetUserId = payload.sub || payload.uuid || payload.id;
+    if (!targetUserId) {
+      return c.json({ success: false, message: "Unauthorized: Invalid token payload" }, 401);
+    }
+
+    const whereConditions = [
+      eq(userSessions.userId, targetUserId),
+      or(
+        isNull(userSessions.expiresAt),
+        gte(userSessions.expiresAt, new Date())
+      )
+    ];
+
+    if (payload.session_token) {
+      whereConditions.push(eq(userSessions.refreshToken, payload.session_token));
     }
 
     const [session] = await db
@@ -49,13 +67,7 @@ export async function authMiddleware(c: Context<Env>, next: Next) {
       .from(userSessions)
       .innerJoin(users, eq(userSessions.userId, users.id))
       .leftJoin(roles, eq(users.role_id, roles.id))
-      .where(
-        and(
-          eq(userSessions.userId, payload.sub),
-          // Ensure session has not expired
-          gte(userSessions.expiresAt, new Date())
-        )
-      )
+      .where(and(...whereConditions))
       .limit(1);
 
     if (!session || !session.isActive) {

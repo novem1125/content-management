@@ -144,6 +144,7 @@ export class AuthRepository implements IAuthRepository {
     userAgent?: string,
     userIp?: string,
   ): Promise<SessionType> {
+    const fourteenDaysFromNow = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
     const result = await db
       .insert(userSessions)
       .values({
@@ -152,6 +153,7 @@ export class AuthRepository implements IAuthRepository {
         userAgent: userAgent ?? "", // not undefined
         ipAddress: userIp ?? null, // optional
         createdAt: new Date(), // optional
+        expiresAt: fourteenDaysFromNow,
       })
       .returning();
 
@@ -177,12 +179,15 @@ export class AuthRepository implements IAuthRepository {
     userAgent?: string,
     userIp?: string,
   ): Promise<SessionType | null> {
+    const fourteenDaysFromNow = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
     const updated = await db
       .update(userSessions)
       .set({
         refreshToken: sessionToken,
         userAgent: userAgent,
         ipAddress: userIp,
+        expiresAt: fourteenDaysFromNow,
+        updatedAt: new Date(),
       })
       .where(sql`${userSessions.userId} = ${userId}`)
       .returning();
