@@ -36,17 +36,18 @@ export class ContentRepository {
     return this.mapToContent(result);
   }
 
-  async create(ownerId: string, data: CreateContentInput):Promise<Content> {
+  async create(ownerId: string, data: CreateContentInput): Promise<Content> {
     const [newContent] = await db
       .insert(contents)
       .values({
         title: data.title,
-        photo: data.photo,
-        video: data.video,
-        status: data.status,
-        ownerId: ownerId,
+        photo: data.photo ?? [],
+        video: data.video ?? [],
+        status: data.status ?? "draft",
+        ownerId,
       })
       .returning();
+
     return this.mapToContent(newContent)!;
   }
 

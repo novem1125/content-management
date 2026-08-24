@@ -70,7 +70,6 @@ export const contentStatusEnum = pgEnum("content_status", ["draft", "published",
 export const contents = pgTable("contents", {
   id: serial("id").primaryKey(),
   title: varchar("title").notNull(),
-  // description: varchar("description").notNull(),
   photo: text("photo").array(),
   video: text("video").array(),
   ownerId: uuid("owner_id").references(() => users.id),
