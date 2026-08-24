@@ -22,9 +22,7 @@ export const createContentSchema = z.object({
     .optional()
     .default([]),
 
-  status: z
-    .enum(["draft", "published", "archived"])
-    .default("draft"),
+  status: z.enum(["only_me", "all", "friends"]).default("friends"),
 });
 
 // 2. Schema for updating content (all fields optional)

@@ -137,12 +137,26 @@ export class ContentService {
     );
   }
 
-  // 2. Get single content item by ID
-  async getContentById(id: number) {
+  // 2. Get single content item by ID with status visibility check
+  async getContentById(id: number, requestingUser?: { id: string; role: string }) {
     const content = await this.contentRepo.findById(id);
     if (!content) {
       throw new Error("NOT_FOUND");
     }
+
+    const status = content.status;
+    if (status === "only_me") {
+      const isOwner = requestingUser && content.owner_id === requestingUser.id;
+      const isAdmin = requestingUser && requestingUser.role === "Admin";
+      if (!isOwner && !isAdmin) {
+        throw new Error("UNAUTHORIZED");
+      }
+    } else if (status === "friends") {
+      if (!requestingUser) {
+        throw new Error("UNAUTHORIZED");
+      }
+    }
+
     return await this.enrichWithPresignedUrls(content);
   }
 

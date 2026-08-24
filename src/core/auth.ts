@@ -18,8 +18,12 @@ export const authMiddleware = async (c: Context, next: Next) => {
 
   if (publicRoutes.includes(c.req.path) || c.req.path.startsWith("/api/contents/public")) return next();
 
+  const isContentGetRoute = c.req.method === "GET" && c.req.path.startsWith("/api/contents/");
   const authHeader = c.req.header("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
+    if (isContentGetRoute) {
+      return next();
+    }
     return c.json({ status: false, message: "Unauthorized" }, 401);
   }
 

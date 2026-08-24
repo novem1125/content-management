@@ -7,8 +7,10 @@ import {
   text,
   uuid,
   pgEnum,
+  unique,
+  index,
 } from "drizzle-orm/pg-core";
-import { InferSelectModel, InferInsertModel } from "drizzle-orm";
+import { InferSelectModel, InferInsertModel, relations } from "drizzle-orm";
 import { boolean } from "drizzle-orm/pg-core";
 
 // ------------------
@@ -62,10 +64,67 @@ export const userSessions = pgTable("user_sessions", {
   expiresAt: timestamp("expires_at"),
 });
 
+export const followers = pgTable(
+  "followers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    // The user being followed
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+
+    // The user who follows
+    followerId: uuid("follower_id")
+      .notNull()
+      .references(() => users.id),
+
+    status: boolean("status").notNull().default(true),
+
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => ({
+    userFollowerUnique: unique().on(table.userId, table.followerId),
+
+    userIdIdx: index("followers_user_id_idx").on(table.userId),
+
+    followerIdIdx: index("followers_follower_id_idx").on(table.followerId),
+  }),
+);
+
+export const usersRelations = relations(users, ({ many }) => ({
+  followers: many(followers, {
+    relationName: "userFollowers",
+  }),
+
+  following: many(followers, {
+    relationName: "userFollowing",
+  }),
+}));
+
+export const followersRelations = relations(followers, ({ one }) => ({
+  user: one(users, {
+    fields: [followers.userId],
+    references: [users.id],
+    relationName: "userFollowers",
+  }),
+
+  follower: one(users, {
+    fields: [followers.followerId],
+    references: [users.id],
+    relationName: "userFollowing",
+  }),
+}));
 // ------------------
 // Content table
 // ------------------
-export const contentStatusEnum = pgEnum("content_status", ["draft", "published", "archived"]);
+export const contentStatusEnum = pgEnum("content_status", [
+  "only_me",
+  "all",
+  "friends",
+]);
 
 export const contents = pgTable("contents", {
   id: serial("id").primaryKey(),
@@ -73,7 +132,7 @@ export const contents = pgTable("contents", {
   photo: text("photo").array(),
   video: text("video").array(),
   ownerId: uuid("owner_id").references(() => users.id),
-  status: contentStatusEnum("status").default("draft").notNull(),
+  status: contentStatusEnum("status").default("friends").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

@@ -24,12 +24,22 @@ export class ContentController {
   getById = async (c: Context) => {
     try {
       const { id } = c.req.valid("param" as never) as ParamIdInput;
-      const item = await this.contentService.getContentById(id);
+      const user = c.get("user");
+      const item = await this.contentService.getContentById(id, user);
       return c.json({ success: true, data: item }, 200);
     } catch (err: any) {
       console.error("getById Error:", err);
       if (err.message === "NOT_FOUND") {
         return c.json({ success: false, message: "Content not found" }, 404);
+      }
+      if (err.message === "UNAUTHORIZED") {
+        return c.json(
+          {
+            success: false,
+            message: "Forbidden: You do not have permission to view this content",
+          },
+          403
+        );
       }
       return c.json({ success: false, message: err.message || "Internal server error" }, 500);
     }

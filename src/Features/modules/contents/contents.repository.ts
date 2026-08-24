@@ -22,7 +22,7 @@ export class ContentRepository {
     const rows = await db
       .select()
       .from(contents)
-      .where(eq(contents.status, "published"))
+      .where(eq(contents.status, "all"))
       .orderBy(desc(contents.createdAt));
     return rows.map(this.mapToContent);
   }
@@ -43,7 +43,7 @@ export class ContentRepository {
         title: data.title,
         photo: data.photo ?? [],
         video: data.video ?? [],
-        status: data.status ?? "draft",
+        status: data.status ?? "friends",
         ownerId,
       })
       .returning();
