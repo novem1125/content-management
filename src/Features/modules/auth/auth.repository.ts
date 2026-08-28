@@ -76,6 +76,27 @@ export class AuthRepository implements IAuthRepository {
 
     return result[0] || null;
   }
+  async getUserById(id: string): Promise<any> {
+    const user = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        phone_no: users.phone_no,
+        password: users.password,
+        role_id: users.role_id,
+        is_active: users.is_active,
+        role: {
+          id: roles.id,
+          name: roles.name,
+        },
+      })
+      .from(users)
+      .leftJoin(roles, eq(users.role_id, roles.id))
+      .where(eq(users.id, id))
+      .limit(1);
+    return user;
+  }
   async updateVerified(
     userId: string,
     isVerified: boolean,

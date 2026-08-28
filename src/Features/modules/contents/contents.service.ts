@@ -29,7 +29,8 @@ function sanitizeMinioPath(pathOrUrl: string): string {
   }
 
   const queryIndex = pathOrUrl.indexOf("?");
-  let cleanPath = queryIndex !== -1 ? pathOrUrl.substring(0, queryIndex) : pathOrUrl;
+  let cleanPath =
+    queryIndex !== -1 ? pathOrUrl.substring(0, queryIndex) : pathOrUrl;
 
   if (cleanPath.startsWith("/")) {
     cleanPath = cleanPath.slice(1);
@@ -74,12 +75,20 @@ export class ContentService {
 
     const isVideo = contentType.startsWith("video/");
     const folder = isVideo ? "videos" : "photos";
-    const sanitizeFilename = fileName ? fileName.replace(/[^a-zA-Z0-9.-]/g, "_") : "file";
+    const sanitizeFilename = fileName
+      ? fileName.replace(/[^a-zA-Z0-9.-]/g, "_")
+      : "file";
     const uniqueFileName = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${sanitizeFilename}`;
     const bucket = config.minio.bucketName || "";
 
-    const key = await this.mediaService.uploadToMinio(bucket, folder, uniqueFileName, buffer, contentType);
-    
+    const key = await this.mediaService.uploadToMinio(
+      bucket,
+      folder,
+      uniqueFileName,
+      buffer,
+      contentType,
+    );
+
     let presignedUrl = "";
     try {
       presignedUrl = await this.mediaService.generatePresignedUrl(bucket, key);
@@ -109,7 +118,7 @@ export class ContentService {
         } catch {
           return key;
         }
-      })
+      }),
     );
 
     const videoUrls = await Promise.all(
@@ -119,7 +128,7 @@ export class ContentService {
         } catch {
           return key;
         }
-      })
+      }),
     );
 
     return {
@@ -133,12 +142,15 @@ export class ContentService {
   async getPublishedContents() {
     const contents = await this.contentRepo.findPublished();
     return await Promise.all(
-      contents.map((item) => this.enrichWithPresignedUrls(item!))
+      contents.map((item) => this.enrichWithPresignedUrls(item!)),
     );
   }
 
   // 2. Get single content item by ID with status visibility check
-  async getContentById(id: number, requestingUser?: { id: string; role: string }) {
+  async getContentById(
+    id: number,
+    requestingUser?: { id: string; role: string },
+  ) {
     const content = await this.contentRepo.findById(id);
     if (!content) {
       throw new Error("NOT_FOUND");
@@ -160,8 +172,29 @@ export class ContentService {
     return await this.enrichWithPresignedUrls(content);
   }
 
+  async getByUserId(userId: string): Promise<any> {
+    const contents = await this.contentRepo.getByUserId(userId);
+
+    return Promise.all(
+      contents.map(async (item) => ({
+        ...item,
+        owner_id: item.owner_id ?? userId,
+        id: String(item.id),
+        created_at: item.created_at ?? new Date(),
+        updated_at: item.updated_at ?? new Date(),
+        photo: item.photo ?? [],
+        video: item.video ?? [],
+        photoUrls:this.enrichWithPresignedUrls(item),
+        videoUrls:this.enrichWithPresignedUrls(item)
+      })),
+    );
+  }
+
   // 3. Create content
-  async createContent(ownerId: string, input: CreateContentInput): Promise<Content> {
+  async createContent(
+    ownerId: string,
+    input: CreateContentInput,
+  ): Promise<Content> {
     const sanitizedInput: CreateContentInput = {
       ...input,
       photo: (input.photo || []).map(sanitizeMinioPath).filter(Boolean),
@@ -189,7 +222,7 @@ export class ContentService {
   async updateContent(
     id: number,
     user: { id: string; role: string },
-    input: UpdateContentInput
+    input: UpdateContentInput,
   ) {
     const existing = await this.contentRepo.findById(id);
     if (!existing) {
@@ -205,8 +238,12 @@ export class ContentService {
 
     const sanitizedInput: UpdateContentInput = {
       ...input,
-      ...(input.photo ? { photo: input.photo.map(sanitizeMinioPath).filter(Boolean) } : {}),
-      ...(input.video ? { video: input.video.map(sanitizeMinioPath).filter(Boolean) } : {}),
+      ...(input.photo
+        ? { photo: input.photo.map(sanitizeMinioPath).filter(Boolean) }
+        : {}),
+      ...(input.video
+        ? { video: input.video.map(sanitizeMinioPath).filter(Boolean) }
+        : {}),
     };
 
     const updated = await this.contentRepo.update(id, sanitizedInput);

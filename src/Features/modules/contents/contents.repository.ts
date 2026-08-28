@@ -3,8 +3,11 @@ import { CreateContentInput, UpdateContentInput } from "./content.schema";
 import { db } from "../../../db/db.config";
 import { contents } from "../../../db/schema";
 import { Content } from "./type/content";
-
-export class ContentRepository {
+import { IContentRepository } from "./contents.interface";
+import { title } from "process";
+import { MediaService } from "../../../config/media.config";
+const mediaService = new MediaService();
+export class ContentRepository implements IContentRepository {
   private mapToContent(row: any) {
     if (!row) return null;
     return {
@@ -35,7 +38,43 @@ export class ContentRepository {
       .limit(1);
     return this.mapToContent(result);
   }
+  async getByUserId(ownerId: string): Promise<Content[]> {
+    const content = await db
+      .select({
+        id: contents.id,
+        title: contents.title,
+        photo: contents.photo,
+        video: contents.video,
+        owner_id: contents.ownerId,
+        status: contents.status,
+        created_at: contents.createdAt,
+        updated_at: contents.updatedAt,
+      })
+      .from(contents)
+      .where(eq(contents.ownerId, ownerId));
 
+    return Promise.all(
+      content.map(async (item) => ({
+        ...item,
+        owner_id: item.owner_id ?? ownerId,
+        id: String(item.id),
+        created_at: item.created_at ?? new Date(),
+        updated_at: item.updated_at ?? new Date(),
+        photo: item.photo ?? [],
+        video: item.video ?? [],
+        // photoUrls: await Promise.all(
+        //   (item.photo ?? []).map((path) =>
+        //     mediaService.generatePresignedUploadUrl(path),
+        //   ),
+        // ),
+        // videoUrls: await Promise.all(
+        //   (item.video ?? []).map((path) =>
+        //     mediaService.generatePresignedUploadUrl(path),
+        //   ),
+        // ),
+      })),
+    );
+  }
   async create(ownerId: string, data: CreateContentInput): Promise<Content> {
     const [newContent] = await db
       .insert(contents)

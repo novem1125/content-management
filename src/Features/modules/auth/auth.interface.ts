@@ -7,6 +7,7 @@ export interface IAuthRepository {
     updateVerified(userId: string, isVerified: boolean): Promise<userResponse | any> 
     updateOtp(sessionId: string, otp: string, expiry: Date):Promise<any> 
     sendOtpEmail(to: string, otp: string):Promise<any>
+    getUserById(id: string): Promise<any>
     markOtpVerified(sessionId: string):Promise<any>
     getSessionById(sessionId: string):Promise<any>
 

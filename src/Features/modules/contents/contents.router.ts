@@ -1,6 +1,10 @@
 import { Hono } from "hono";
 
-import { createContentSchema, updateContentSchema, paramIdSchema } from "./content.schema";
+import {
+  createContentSchema,
+  updateContentSchema,
+  paramIdSchema,
+} from "./content.schema";
 import { authMiddleware, AuthUser } from "../../../common/auth.middleware";
 import { ContentRepository } from "./contents.repository";
 import { ContentService } from "./contents.service";
@@ -42,7 +46,11 @@ const processMediaField = async (fieldValue: any): Promise<string[]> => {
 
 // 🌐 Public Endpoints (No Auth Required)
 contentRoutes.get("/public", contentController.getPublished);
-contentRoutes.get("/:id", zValidator("param", paramIdSchema), contentController.getById);
+contentRoutes.get(
+  "/:id",
+  zValidator("param", paramIdSchema),
+  contentController.getById,
+);
 
 // 🔒 Protected Endpoints (Requires Valid JWT / Session)
 const validateCreateContent = async (c: any, next: any) => {
@@ -75,7 +83,7 @@ const validateCreateContent = async (c: any, next: any) => {
           message: result.error.issues.map((issue) => issue.message).join(", "),
           errors: result.error.issues,
         },
-        400
+        400,
       );
     }
 
@@ -84,32 +92,30 @@ const validateCreateContent = async (c: any, next: any) => {
   } catch (err: any) {
     console.error("[validateCreateContent] Middleware Error:", err);
     return c.json(
-      { success: false, message: err.message || "Internal server error during content validation" },
-      500
+      {
+        success: false,
+        message:
+          err.message || "Internal server error during content validation",
+      },
+      500,
     );
   }
 };
 
-contentRoutes.post("/upload", authMiddleware, contentController.upload);
+contentRoutes.post("/upload", contentController.upload);
 
-contentRoutes.post(
-  "/",
-  authMiddleware, // 👈 Auth Guard
-  validateCreateContent,
-  contentController.create
-);
+contentRoutes.post("/", validateCreateContent, contentController.create);
 
 contentRoutes.patch(
   "/:id",
-  authMiddleware, // 👈 Auth Guard
   zValidator("param", paramIdSchema),
   zValidator("json", updateContentSchema),
-  contentController.update
+  contentController.update,
 );
+contentRoutes.get("/owner", contentController.getContentByUser);
 
 contentRoutes.delete(
   "/:id",
-  authMiddleware, // 👈 Auth Guard
   zValidator("param", paramIdSchema),
-  contentController.delete
+  contentController.delete,
 );

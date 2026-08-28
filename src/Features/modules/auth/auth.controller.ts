@@ -2,156 +2,211 @@ import { Context } from "hono";
 import { http_status } from "../../../shared/constants/http";
 import { AuthService } from "./auth.service";
 import { userRegister } from "./types/user.type";
-import { HTTPException } from 'hono/http-exception'
+import { HTTPException } from "hono/http-exception";
 
 export class AuthController {
-    constructor(private authService: AuthService) { }
+  constructor(private authService: AuthService) {}
 
-    async userRegister(body: userRegister) {
-        try {
-            const user = await this.authService.userRegister(body);
+  async userRegister(body: userRegister) {
+    try {
+      const user = await this.authService.userRegister(body);
 
-            if (!user) {
-                return {
-                    statusCode: http_status.BadRequest,
-                    success: false,
-                    message: "User registration failed",
-                };
-            }
+      if (!user) {
+        return {
+          statusCode: http_status.BadRequest,
+          success: false,
+          message: "User registration failed",
+        };
+      }
 
-            return {
-                statusCode: http_status.Created,
-                success: true,
-                message: "User registered successfully",
-                data: user,
-            };
-        } catch (error: any) {
-            // check for duplicate email error
-            if (error.message.includes("duplicate key") || error.message.includes("already exists")) {
-                return {
-                    statusCode: http_status.Conflict, // 409
-                    success: false,
-                    message: "Email already exists",
-                };
-            }
+      return {
+        statusCode: http_status.Created,
+        success: true,
+        message: "User registered successfully",
+        data: user,
+      };
+    } catch (error: any) {
+      // check for duplicate email error
+      if (
+        error.message.includes("duplicate key") ||
+        error.message.includes("already exists")
+      ) {
+        return {
+          statusCode: http_status.Conflict, // 409
+          success: false,
+          message: "Email already exists",
+        };
+      }
 
-            console.error(error);
-            return {
-                statusCode: http_status.InternalServerError, // 500
-                success: false,
-                message: error.message || "Internal Server Error",
-            };
-        }
+      console.error(error);
+      return {
+        statusCode: http_status.InternalServerError, // 500
+        success: false,
+        message: error.message || "Internal Server Error",
+      };
     }
-    async userLogin(c: Context<any, any, {}>, body: { emailOrPhone: string, password: string }) {
-        try {
-            const response = await this.authService.login(                // ✅ Context
-                body.emailOrPhone,  // ✅ email or phone
-                body.password       // ✅ password
-            );
-            if (!response) {
-                return { statusCode: false, message: "Data Not Found" }
-            }
-            return response
-
-        } catch (error: any) {
-            console.error(error);
-            return {
-                statusCode: http_status.InternalServerError,
-                success: false,
-                message: error.message || "Internal Server Error",
-            };
-        }
+  }
+  async userLogin(
+    c: Context<any, any, {}>,
+    body: { emailOrPhone: string; password: string },
+  ) {
+    try {
+      const response = await this.authService.login(
+        // ✅ Context
+        body.emailOrPhone, // ✅ email or phone
+        body.password, // ✅ password
+      );
+      if (!response) {
+        return { statusCode: false, message: "Data Not Found" };
+      }
+      return response;
+    } catch (error: any) {
+      console.error(error);
+      return {
+        statusCode: http_status.InternalServerError,
+        success: false,
+        message: error.message || "Internal Server Error",
+      };
     }
-    async googleLogin(c: Context<any, any, {}>, body: { idToken: string }): Promise<any> {
-        try {
-            const idToken = body.idToken;
-            if (!idToken) {
-                return c.json({
-                    statusCode: 400,
-                    success: false,
-                    message: "idToken is required",
-                }, 400);
-            }
+  }
+  async googleLogin(
+    c: Context<any, any, {}>,
+    body: { idToken: string },
+  ): Promise<any> {
+    try {
+      const idToken = body.idToken;
+      if (!idToken) {
+        return c.json(
+          {
+            statusCode: 400,
+            success: false,
+            message: "idToken is required",
+          },
+          400,
+        );
+      }
 
-            const result = await this.authService.googleLogin(idToken);
-            // console.log(result);
-            return result;
-
-        } catch (err: any) {
-            if (err instanceof HTTPException) {
-                // Return the error response generated by HTTPException
-                return err.getResponse()
-            }
-            // For any other unexpected errors, log and return a generic 500 response
-            console.error(err)
-            return c.text('Internal Server Error', 500)
-        }
+      const result = await this.authService.googleLogin(idToken);
+      // console.log(result);
+      return result;
+    } catch (err: any) {
+      if (err instanceof HTTPException) {
+        // Return the error response generated by HTTPException
+        return err.getResponse();
+      }
+      // For any other unexpected errors, log and return a generic 500 response
+      console.error(err);
+      return c.text("Internal Server Error", 500);
     }
-    async updateUser2FactorVerified(c: Context<any, any, {}>, body: { is_verified: boolean }): Promise<any> {
-        const user = c.get("user"); // 👈 get from middleware
-        const userId = user.uuid;
-        try {
-            const response = await this.authService.updateVerified(userId, body.is_verified);
+  }
+  async getUserById(c: Context): Promise<any> {
+    const id = c.req.param("id");
 
-            return c.json({
-                success: true,
-                message: "User Verified",
-                data: response,
-            });
-        } catch (error) {
-            console.error(error);
-            return c.json({
-                success: false,
-                message: "Something went wrong",
-            }, 500);
-        }
+    if (!id) {
+      return c.json(
+        {
+          success: false,
+          message: "User ID is required",
+        },
+        400,
+      );
     }
-    async sendOtp(c: Context) {
-        try {
-            const user = c.get("user");
-            const sessionId = c.get("session_id"); // from middleware
-            await this.authService.sendOtp(sessionId, user.email);
 
-            return c.json({
-                success: true,
-                message: "OTP sent to email",
-            });
-
-        } catch (error) {
-            console.error(error);
-            return c.json({ success: false, message: "Failed to send OTP" }, 500);
-        }
+    const response = await this.authService.getUserById(id);
+     return c.json({
+        success: true,
+        message: "Get User Successfully",
+        data: response,
+      });
+    try {
+    } catch (error) {
+      console.error(error);
+      return c.json(
+        {
+          success: false,
+          message: "Something went wrong",
+        },
+        500,
+      );
     }
-    async sendOtpForForgotPassword(c: Context, body: { email: string }) {
-        try {
-            await this.authService.fotgotPasswordOtp(body.email);
-              return c.json({
-                success: true,
-                message: "Forgot Password OTP sent to email",
-            });
-        } catch (error) {
-            console.error(error);
-            return c.json({ success: false, message: "Failed to send forgot password OTP" }, 500);
-        }
+  }
+  async updateUser2FactorVerified(
+    c: Context<any, any, {}>,
+    body: { is_verified: boolean },
+  ): Promise<any> {
+    const user = c.get("user"); // 👈 get from middleware
+    const userId = user.uuid;
+    try {
+      const response = await this.authService.updateVerified(
+        userId,
+        body.is_verified,
+      );
+
+      return c.json({
+        success: true,
+        message: "User Verified",
+        data: response,
+      });
+    } catch (error) {
+      console.error(error);
+      return c.json(
+        {
+          success: false,
+          message: "Something went wrong",
+        },
+        500,
+      );
     }
-    async verifyOtp(c: Context, body: { otp: string }): Promise<any> {
-        try {
-            const { otp } = body;
-            const sessionId = c.get("session_id");
+  }
+  async sendOtp(c: Context) {
+    try {
+      const user = c.get("user");
+      const sessionId = c.get("session_id"); // from middleware
+      await this.authService.sendOtp(sessionId, user.email);
 
-            await this.authService.verifyOtp(sessionId, otp);
-
-            return c.json({
-                success: true,
-                message: "OTP verified successfully",
-            });
-
-        } catch (error: any) {
-            return c.json({
-                success: false,
-                message: error.message,
-            }, 400);
-        }
+      return c.json({
+        success: true,
+        message: "OTP sent to email",
+      });
+    } catch (error) {
+      console.error(error);
+      return c.json({ success: false, message: "Failed to send OTP" }, 500);
     }
+  }
+  async sendOtpForForgotPassword(c: Context, body: { email: string }) {
+    try {
+      await this.authService.fotgotPasswordOtp(body.email);
+      return c.json({
+        success: true,
+        message: "Forgot Password OTP sent to email",
+      });
+    } catch (error) {
+      console.error(error);
+      return c.json(
+        { success: false, message: "Failed to send forgot password OTP" },
+        500,
+      );
+    }
+  }
+  async verifyOtp(c: Context, body: { otp: string }): Promise<any> {
+    try {
+      const { otp } = body;
+      const sessionId = c.get("session_id");
+
+      await this.authService.verifyOtp(sessionId, otp);
+
+      return c.json({
+        success: true,
+        message: "OTP verified successfully",
+      });
+    } catch (error: any) {
+      return c.json(
+        {
+          success: false,
+          message: error.message,
+        },
+        400,
+      );
+    }
+  }
 }
